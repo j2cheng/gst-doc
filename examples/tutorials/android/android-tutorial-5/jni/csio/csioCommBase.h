@@ -132,7 +132,15 @@ protected:
 
     int   m_debugLevel;
     static int   m_threadBaseID;
-
+    void* createCharArray(int size) { return new char [size]; }
+    void deleteCharArray(void* buf)
+    {
+        if(buf)
+        {
+            char* tmp = (char*)buf;
+            delete [] tmp;
+        }
+    }
 private:
     static void * ThreadEntryFunc(void * This) {((csioThreadBaseClass *)This)->ThreadEntry(); return NULL;}
 protected:

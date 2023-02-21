@@ -1,8 +1,6 @@
 //
 // Created by builduser on 2/15/23.
 //
-#include "gst_element_print_properties.h"
-
 #ifndef ANDROID_CSIO_H
 #define ANDROID_CSIO_H
 
@@ -35,8 +33,9 @@ enum
 
 #ifdef __cplusplus
 #include "csioCommBase.h""
+#include "gstmanager/gstManager.h"
 
-class csioManagerClass;
+class gstManager;
 
 class csioProjectClass : public csioThreadBaseClass
 {
@@ -61,29 +60,11 @@ private:
     int  m_projectID;
     void* ThreadEntry();
 
-    csioManagerClass** m_csioManagerTaskObjList ;
+    gstManager** m_csioManagerTaskObjList ;
 
     csioEventQueueListBase* m_projEventQList;
-
-    void* createCharArray(int size) { return new char [size]; }
-    void deleteCharArray(void* buf)
-    {
-        if(buf)
-        {
-            char* tmp = (char*)buf;
-            delete [] tmp;
-        }
-    }
 };
 
-class csioManagerClass : public csioThreadBaseClass
-{
-public:
-
-    csioManagerClass(int id){};
-    ~csioManagerClass();
-
-};
 #endif
 
 #ifdef __cplusplus

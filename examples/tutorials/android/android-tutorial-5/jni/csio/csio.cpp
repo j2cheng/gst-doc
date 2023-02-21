@@ -2,6 +2,7 @@
 #include <gst/gst.h>
 
 #include "csio.h"
+#include "gst_element_print_properties.h"
 
 const WFD_STRNUMPAIR csio_proj_timestamp_names[] =
 {
@@ -148,7 +149,7 @@ m_projEventQList(NULL)
     if(csioProjectTimeArray)
         csioProjectTimeArray->recordEventTimeStamp(CSIO_PROJ_TIMESTAMP_INIT);
 
-    m_csioManagerTaskObjList = new csioManagerClass* [MAX_STREAM_OUT];
+    m_csioManagerTaskObjList = new gstManager* [MAX_STREAM_OUT];
 
     GST_DEBUG( "csioProjectClass: creating csioProjectClass.\n");
 }
