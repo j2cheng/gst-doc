@@ -4,7 +4,7 @@
 
 GST_DEBUG_CATEGORY_STATIC (debug_category);
 #define GST_CAT_DEFAULT debug_category
-#define GST_CAT_CSIO "gstmanager"
+#define GST_CAT_GSTMANAGER "gstmanager"
 
 const WFD_STRNUMPAIR gst_manager_timestamp_names[] =
 {
@@ -15,6 +15,14 @@ const WFD_STRNUMPAIR gst_manager_timestamp_names[] =
     {0,0}//terminate the list
 };
 
+int gstManager_init()
+{
+    GST_DEBUG_CATEGORY_INIT (debug_category, GST_CAT_GSTMANAGER, 0,
+                             "Android csio");
+    gst_debug_set_threshold_for_name (GST_CAT_GSTMANAGER, GST_LEVEL_DEBUG);
+
+    return 0;
+}
 /***************************** CresRTSP manager class **************************************/
 gstManager::gstManager(int iId):
 m_parent(NULL),
@@ -31,7 +39,8 @@ m_gstStreamId(iId)
     if(m_ManagerTimeArray)
         m_ManagerTimeArray->recordEventTimeStamp(CSIO_MANAGER_TIMESTAMP_INIT);
 
-    GST_DEBUG( "gstManager: creating gstManager.\n");
+    
+    GST_DEBUG( "gstManager: set GST_CAT_GSTMANAGER.\n");
 }
 
 gstManager::~gstManager()
@@ -216,20 +225,20 @@ void* gstManager::ThreadEntry()
 
         wtRtn  = m_ManagerEventQList->waitMsgQueueSignal(CSIO_PROJ_EVNT_POLL_SLEEP_MS);
 
-        GST_DEBUG( "gstManager: waitMsgQueueSignal return:%d, m_threadObjLoopCnt[%d]\n",wtRtn,m_threadObjLoopCnt);
-
+        GST_DEBUG( "gstManager: waitMsgQueueSignal return:%d, m_threadObjLoopCnt[%d]",wtRtn,m_threadObjLoopCnt);
+        
         evntQPtr = NULL;
 
         if(m_ManagerEventQList->GetFromQueueList(&evntQPtr) && evntQPtr)
         {
-            GST_DEBUG( "gstManager: evntQ is:size[%d],type[%d],iId[%d],GetEvntQueueCount[%d]\n",\
+            GST_DEBUG( "gstManager: evntQ is:size[%d],type[%d],iId[%d],GetEvntQueueCount[%d]",\
                             evntQPtr->buf_size,evntQPtr->event_type,evntQPtr->obj_id,m_ManagerEventQList->GetEvntQueueCount());
 
             switch (evntQPtr->event_type)
             {
                 default:
                 {
-                    GST_DEBUG( "csioProjectClass: unknown type[%d].\n",evntQPtr->event_type);
+                    GST_DEBUG( "gstManager: unknown type[%d].\n",evntQPtr->event_type);
                     break;
                 }
             }

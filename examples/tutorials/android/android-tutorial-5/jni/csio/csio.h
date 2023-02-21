@@ -79,6 +79,9 @@ private:
     gstManager** m_csioManagerTaskObjList ;
 
     csioEventQueueListBase* m_projEventQList;
+
+    bool checkStartSrv();
+    bool checkStopSrv();
 };
 
 extern void csioProjStartServer(int streamID);

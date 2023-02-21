@@ -86,4 +86,6 @@ typedef enum _eGSTMode
 
 } eGSTMode;
 
+extern int gstManager_init();
+
 #endif /* _GST_MANAGER_H_ */

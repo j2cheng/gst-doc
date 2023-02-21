@@ -131,6 +131,8 @@ int csio_init()
                          "%s exit.",__FUNCTION__);
     GST_DEBUG("%s: exit",__FUNCTION__);
 
+    gstManager_init();
+
     return 0;
 }
 void csioProjStartServer(int streamID)
@@ -427,6 +429,7 @@ void* csioProjectClass::ThreadEntry()
                 case CSIOPROJ_EVENT_CSIO_START_CLIENT:
                 {
                     int id = evntQPtr->obj_id;
+                    GST_DEBUG("csioProjectClass: processing cmd[%d] = %d\n",evntQPtr->event_type,id);
 
                     // int evntTimeType = RTSPPROJ_EVENTTIME_CMD_SEV_START;
                     // if( evntQ.event_type == CRESRTSP_EVENT_CSIO_START_CLIENT)
@@ -478,6 +481,7 @@ void* csioProjectClass::ThreadEntry()
                 case CSIOPROJ_EVENT_CSIO_STOP_CLIENT:
                 {
                     int id = evntQPtr->obj_id;
+                    GST_DEBUG("csioProjectClass: processing cmd[%d] = %d\n",evntQPtr->event_type,id);
 
                     if( !IsValidStream(id) )
                     {
@@ -499,7 +503,7 @@ void* csioProjectClass::ThreadEntry()
                         delete m_csioManagerTaskObjList[id];
                         m_csioManagerTaskObjList[id] = NULL;
 
-                        GST_DEBUG("csioProjectClass: Wait is done\n");
+                        GST_DEBUG("csioProjectClass: m_csioManagerTaskObjList[%d] deleted.\n",id);
                     }
                     else
                     {
@@ -518,6 +522,18 @@ void* csioProjectClass::ThreadEntry()
             delete evntQPtr;
         }
 
+        if(checkStartSrv())
+        {
+            GST_DEBUG( "csioProjectClass: need to start server...\n");
+            csioProjStartServer(0);
+        }
+
+        if(checkStopSrv())
+        {
+            GST_DEBUG( "csioProjectClass: need to stop server...\n");
+            csioProjStopServer(0);
+        }
+
         if(m_forceThreadExit)
         {
             //TODO: exit all child thread and wait here
@@ -531,5 +547,74 @@ void* csioProjectClass::ThreadEntry()
     m_ThreadIsRunning = 0;
 
     return NULL;
+}
+
+bool csioProjectClass::checkStartSrv()
+{
+    std::string  info = GetFromRedis("(echo get STARTSERV; sleep 0.1) | nc 127.0.0.1 6379");
+    GST_DEBUG ("%s GetFromRedis get[%d] STARTSERV '%s'.",__FUNCTION__,info.size(),info.c_str());
+    const char* tmp = info.c_str();
+    bool gotkey = false;
+
+    if(tmp[0] != '$')
+    {
+        GST_DEBUG ("%s GetFromRedis get STARTSERV return false(no '$'). '0x%x -- %c'.",__FUNCTION__,tmp[0],tmp[0]);
+        return false;
+    }
+
+    if(tmp[1] == '-')
+    {
+        GST_DEBUG ("%s GetFromRedis get STARTSERV return false(no key). '0x%x -- %c'.",__FUNCTION__,tmp[1],tmp[1]);
+        return false;
+    }
+
+
+    for(int i = 2; i < info.size(); i++)
+    {
+        GST_DEBUG ("%s GetFromRedis get STARTSERV '0x%x -- %c'.",__FUNCTION__,tmp[i],tmp[i]);
+        gotkey = true;
+    }
+
+    if(gotkey)
+    {
+        info = GetFromRedis("(echo del STARTSERV; sleep 0.1) | nc 127.0.0.1 6379");
+        GST_DEBUG ("%s GetFromRedis del STARTSERV called",__FUNCTION__);
+    }
+
+    return gotkey;
+}
+bool csioProjectClass::checkStopSrv()
+{
+    std::string  info = GetFromRedis("(echo get STOPSERV; sleep 0.1) | nc 127.0.0.1 6379");
+    GST_DEBUG ("%s GetFromRedis get[%d] STOPSERV '%s'.",__FUNCTION__,info.size(),info.c_str());
+    const char* tmp = info.c_str();
+    bool gotkey = false;
+
+    if(tmp[0] != '$')
+    {
+        GST_DEBUG ("%s GetFromRedis get STOPSERV return false(no '$'). '0x%x -- %c'.",__FUNCTION__,tmp[0],tmp[0]);
+        return false;
+    }
+
+    if(tmp[1] == '-')
+    {
+        GST_DEBUG ("%s GetFromRedis get STOPSERV return false(no key). '0x%x -- %c'.",__FUNCTION__,tmp[1],tmp[1]);
+        return false;
+    }
+
+
+    for(int i = 2; i < info.size(); i++)
+    {
+        GST_DEBUG ("%s GetFromRedis get STOPSERV '0x%x -- %c'.",__FUNCTION__,tmp[i],tmp[i]);
+        gotkey = true;
+    }
+
+    if(gotkey)
+    {
+        info = GetFromRedis("(echo del STOPSERV; sleep 0.1) | nc 127.0.0.1 6379");
+        GST_DEBUG ("%s GetFromRedis del STOPSERV called",__FUNCTION__);
+    }
+
+    return gotkey;
 }
 /********** end of csioProjectClass class *******************/
