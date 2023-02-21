@@ -6,6 +6,15 @@ GST_DEBUG_CATEGORY_STATIC (debug_category);
 #define GST_CAT_DEFAULT debug_category
 #define GST_CAT_CSIO "gstmanager"
 
+const WFD_STRNUMPAIR gst_manager_timestamp_names[] =
+{
+    {"gst manager init time " ,   CSIO_MANAGER_TIMESTAMP_INIT},
+    {"gst manager start time" ,   CSIO_MANAGER_TIMESTAMP_START},
+    {"gst manager stop time " ,   CSIO_MANAGER_TIMESTAMP_STOP},
+
+    {0,0}//terminate the list
+};
+
 /***************************** CresRTSP manager class **************************************/
 gstManager::gstManager(int iId):
 m_parent(NULL),
@@ -21,8 +30,6 @@ m_gstStreamId(iId)
 
     if(m_ManagerTimeArray)
         m_ManagerTimeArray->recordEventTimeStamp(CSIO_MANAGER_TIMESTAMP_INIT);
-
-    // m_csioManagerTaskObjList = new csioManagerClass* [MAX_STREAM_OUT];
 
     GST_DEBUG( "gstManager: creating gstManager.\n");
 }

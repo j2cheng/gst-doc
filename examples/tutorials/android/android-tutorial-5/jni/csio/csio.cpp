@@ -14,6 +14,7 @@ const WFD_STRNUMPAIR csio_proj_timestamp_names[] =
     {0,0}//terminate the list
 };
 static Mutex gProjectsLock;
+static void csioProjSendEvent(int iId, int evnt, int data_size, void* bufP);
 
 GST_DEBUG_CATEGORY_STATIC (debug_category);
 #define GST_CAT_DEFAULT debug_category
@@ -132,7 +133,46 @@ int csio_init()
 
     return 0;
 }
+void csioProjStartServer(int streamID)
+{
+    GST_DEBUG("csioProjStartServer(%d) enter\n",streamID);
 
+    gProjectsLock.lock();
+    csioProjSendEvent(streamID, CSIOPROJ_EVENT_CSIO_START_SERV,0,NULL);
+    gProjectsLock.unlock();
+    GST_DEBUG("csioProjStartServer(%d) exit\n",streamID);
+}
+void csioProjStopServer(int streamID)
+{
+    GST_DEBUG("csioProjStopServer(%d) enter\n",streamID);
+    gProjectsLock.lock();
+    csioProjSendEvent(streamID, CSIOPROJ_EVENT_CSIO_STOP_SERV,0,NULL);
+    gProjectsLock.unlock();
+    GST_DEBUG("csioProjStopServer(%d) exit\n",streamID);
+}
+
+//local static functio without lock
+static void csioProjSendEvent(int iId, int evnt, int data_size, void* bufP)
+{
+    //only one project for now
+    if(csioProjList && csioProjList[0])
+    {
+        GST_DEBUG("csioProjSendEvent: [%d]call sendEvent.\n",iId);
+        csioEventQueueStruct EvntQ;
+        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+        EvntQ.obj_id = iId;
+        EvntQ.event_type = evnt;
+        EvntQ.buf_size   = data_size;
+        EvntQ.buffPtr    = bufP;
+
+        csioProjList[0]->sendEvent(&EvntQ);
+        GST_DEBUG("csioProjSendEvent: [%d]done sendEvent.\n",iId);
+    }
+    else
+    {
+        GST_DEBUG("csioProjSendEvent: no project is running\n");
+    }
+}
 /********** csioProjectClass class *******************/
 csioProjectClass::csioProjectClass(int iId):
 m_projectID(iId),
@@ -149,7 +189,12 @@ m_projEventQList(NULL)
     if(csioProjectTimeArray)
         csioProjectTimeArray->recordEventTimeStamp(CSIO_PROJ_TIMESTAMP_INIT);
 
-    m_csioManagerTaskObjList = new gstManager* [MAX_STREAM_OUT];
+    m_csioManagerTaskObjList = new gstManager* [MAX_STREAM];
+    for(int i = 0; i < MAX_STREAM; i++)
+    {
+        m_csioManagerTaskObjList[i] = NULL;
+    }
+
 
     GST_DEBUG( "csioProjectClass: creating csioProjectClass.\n");
 }
@@ -191,6 +236,23 @@ csioProjectClass::~csioProjectClass()
         delete csioProjectTimeArray;
         csioProjectTimeArray = NULL;
     }
+
+    for(int i = 0; i < MAX_STREAM; i++)
+    {
+        if(m_csioManagerTaskObjList[i])
+        {
+            GST_DEBUG("csioProjectClass: calling exit manager id[%d]\n",i);
+
+            m_csioManagerTaskObjList[i]->exitThread();
+            GST_DEBUG("csioProjectClass: call WaitForThreadToExit[0x%x]\n",m_csioManagerTaskObjList[i]);
+            m_csioManagerTaskObjList[i]->WaitForThreadToExit();
+            GST_DEBUG("csioProjectClass: Wait is done\n");
+          
+            //delete the object, and set list to NULL
+            delete m_csioManagerTaskObjList[i];
+            m_csioManagerTaskObjList[i] = NULL;
+        }//else
+    }
 }
 
 void csioProjectClass::DumpClassPara(int id)
@@ -216,6 +278,14 @@ void csioProjectClass::DumpClassPara(int id)
             csioProjectTimeArray->convertTime(i,time_string,40,milliseconds);
             GST_DEBUG( "csioProjectClass: %s:  %s.%03ld\n",
                        csio_proj_timestamp_names[i].pStr, time_string, milliseconds);
+        }
+    }
+
+    for(int i = 0; i < MAX_STREAM; i++)
+    {
+        if(m_csioManagerTaskObjList[i])
+        {
+            m_csioManagerTaskObjList[i]->DumpClassPara(0);
         }
     }
 }
@@ -353,140 +423,91 @@ void* csioProjectClass::ThreadEntry()
 
             switch (evntQPtr->event_type)
             {
-                // case CSIO_EVENTS_JNI_START:
-                // {
-                //     int id = evntQPtr->obj_id;
-                //     GST_DEBUG( "csioProjectClass: processing CSIO_EVENTS_JNI_START[%d].\n",id);
+                case CSIOPROJ_EVENT_CSIO_START_SERV:
+                case CSIOPROJ_EVENT_CSIO_START_CLIENT:
+                {
+                    int id = evntQPtr->obj_id;
 
-                //     if( !IsValidStreamWindow(id))
-                //     {
-                //         GST_DEBUG( "csioProjectClass: CSIO_EVENTS_JNI_START obj ID is invalid = %d",id);
-                //     }
-                //     else if( evntQPtr->buf_size && evntQPtr->buffPtr)
-                //     {
-                //         //lock here, m_wfdSinkStMachineTaskObjList[] will be changed
-                //         gProjectsLock.lock();
+                    // int evntTimeType = RTSPPROJ_EVENTTIME_CMD_SEV_START;
+                    // if( evntQ.event_type == CRESRTSP_EVENT_CSIO_START_CLIENT)
+                    //     evntTimeType = RTSPPROJ_EVENTTIME_CMD_CLIENT_START;
 
-                //         //if the same object id is active
-                //         if(m_wfdSinkStMachineTaskObjList && m_wfdSinkStMachineTaskObjList[id])
-                //         {
-                //             if(wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr)
-                //             {
-                //                 csioEventQueueStruct EvntQ;
+                    if( !IsValidStream(id) )
+                    {
+                        GST_DEBUG("csioProjectClass: obj ID is invalid = %d\n",id);
+                        break;
+                    }
 
-                //                 //send tcp connection command with new url and port
-                //                 memset(&EvntQ,0,sizeof(csioEventQueueStruct));
-                //                 EvntQ.obj_id = id;
-                //                 EvntQ.event_type = CSIO_START_STMACHINE_EVENT;
-                //                 EvntQ.buf_size   = evntQPtr->buf_size;
-                //                 EvntQ.buffPtr    = evntQPtr->buffPtr;
-                //                 EvntQ.ext_obj    = evntQPtr->ext_obj;
-                //                 EvntQ.ext_obj2   = evntQPtr->ext_obj2;
-                //                 EvntQ.reserved[0]   = evntQPtr->reserved[0];
-                //                 EvntQ.reserved[1]   = evntQPtr->reserved[1];
-                //                 EvntQ.reserved[2]   = evntQPtr->reserved[2];
-                //                 wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr->sendEvent(&EvntQ);
-
-                //                 GST_DEBUG( "csioProjectClass: EvntQ.reserved-0[%d], EvntQ.reserved-1[%d], EvntQ.reserved-2[%d].\n",EvntQ.reserved[0],EvntQ.reserved[1],EvntQ.reserved[2]);
-                //             }//else
-
-                //             GST_DEBUG( "csioProjectClass: process with existing wfdSinkStMachineClass object is done.\n");
-                //         }
-                //         else
-                //         {
-                //             //create new manager task object
-                //             wfdSinkStMachineClass* p = new wfdSinkStMachineClass(id,this);
-                //             GST_DEBUG( "csioProjectClass: wfdSinkStMachineClass[0x%x] created.\n",p);
-
-                //             if(p)
-                //             {
-                //                 p->setDebugLevel(m_debugLevel);
-
-                //                 //Note: m_wfdSinkStMachineThreadPtr will insert this object to the list,
-                //                 if(wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr)
+                    //check configuration
+                    // if(m_ConfigTable[id].CresRTSPStreamID == -1)
                 //                 {
-                //                     csioEventQueueStruct EvntQ;
-                //                     memset(&EvntQ,0,sizeof(csioEventQueueStruct));
-                //                     EvntQ.obj_id = id;
-                //                     EvntQ.event_type = CSIO_INSERT_STMACHINE_EVENT;
-                //                     EvntQ.buf_size   = evntQPtr->buf_size;
-                //                     EvntQ.buffPtr    = evntQPtr->buffPtr;
-                //                     EvntQ.ext_obj    = evntQPtr->ext_obj;
-                //                     EvntQ.ext_obj2   = evntQPtr->ext_obj2;
-                //                     EvntQ.voidPtr    = (void*)(p);
-                //                     EvntQ.reserved[0]   = evntQPtr->reserved[0];
-                //                     EvntQ.reserved[1]   = evntQPtr->reserved[1];
-                //                     EvntQ.reserved[2]   = evntQPtr->reserved[2];
+                    //     STRLOG(LOGLEV_ERROR,LOGCAT_GSRTSPDEFAULT, "CresRTSP_project ERROR: need configuration first\n");
+                    //     break;
+                    // }
 
-                //                     GST_DEBUG( "csioProjectClass: EvntQ.reserved-0[%d], EvntQ.reserved-1[%d], EvntQ.reserved-2[%d].\n",EvntQ.reserved[0],EvntQ.reserved[1],EvntQ.reserved[2]);
+                    if(m_csioManagerTaskObjList)
+                    {
+                        if(m_csioManagerTaskObjList[id])
+                        {
+                            GST_DEBUG("csioProjectClass: gstmanager already exist,id[%d].\n",id);
+                        }
+                        else
+                        {
+                            m_csioManagerTaskObjList[id] = new gstManager(id);
 
-                //                     wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr->sendEvent(&EvntQ);
-                //                 }//else
+                            //set parameters
+                            m_csioManagerTaskObjList[id]->setParent(this);
+                            // m_csioManagerTaskObjList[id]->configManager(&m_ConfigTable[id]);
+                            m_csioManagerTaskObjList[id]->setDebugLevel(m_debugLevel);
 
-                //                 //Note: waitWfdSinkStMachineSignal will wait for m_wfdSinkStMachineThreadPtr to signal
-                //                 GST_DEBUG( "csioProjectClass: call waitWfdSinkStMachineSignal[%d]\n",id);
-                //                 int retNum = p->waitWfdSinkStMachineSignal(10000);//timeout 10s
-                //                 if( retNum == CSIO_SINGAL_WAIT_TIMEOUT ||
-                //                     retNum == CSIO_SINGAL_WAIT_ERROR)
-                //                 {
-                //                     GST_DEBUG( "csioProjectClass: ERROR insertwfdSinkStMachineObj[%d] failed!!!\n",id);
-                //                     //Note: I don't think this will happen, but if so, we need to delete object
-                //                     delete p;
-                //                     p = NULL;
-                //                 }
-                //                 else//state machine is running fine
-                //                 {
-                //                     GST_DEBUG( "csioProjectClass: waitWfdSinkStMachineSignal[0x%x] returns without error.\n",p);
-                //                 }
+                            //init default variables
 
-                //                 GST_DEBUG( "csioProjectClass: process new wfdSinkStMachineClass object is done.\n");
-                //             }
-                //         }
+                            //start thread
+                            char name[100];
+                            sprintf(name, "GST_MANAGER%d", id);
+                            m_csioManagerTaskObjList[id]->CreateNewThread(name,NULL);
 
-                //         gProjectsLock.unlock();
+                            //log start time stamp
+                            // gettimeofday(&eventTime[evntTimeType], NULL);
+                            GST_DEBUG("csioProjectClass: new gstmanager started:id[%d]\n",id);
+                        }
+                    }
+                    break;
+                }
+                case CSIOPROJ_EVENT_CSIO_STOP_SERV:
+                case CSIOPROJ_EVENT_CSIO_STOP_CLIENT:
+                {
+                    int id = evntQPtr->obj_id;
 
-                //         //log start time stamp
-                //         if(csioProjectTimeArray)
-                //             csioProjectTimeArray->recordEventTimeStamp(CSIO_PROJ_TIMESTAMP_START);
-                //     }
-                //     else
-                //     {
-                //         GST_DEBUG( "csioProjectClass: did not get url[%d]",id);
-                //     }
+                    if( !IsValidStream(id) )
+                    {
+                        GST_DEBUG("csioProjectClass: obj ID is invalid = %d\n",id);
+                        break;
+                    }
 
-                //     if( evntQPtr->buf_size && evntQPtr->buffPtr)
-                //     {
-                //         deleteCharArray(evntQPtr->buffPtr);
-                //     }
-                //     break;
-                // }
-                // case CSIO_EVENTS_JNI_STOP:
-                // {
-                //     int id = evntQPtr->obj_id;
+                    if(m_csioManagerTaskObjList && m_csioManagerTaskObjList[id])
+                    {                        
+                        //tell thread to exit
+                        m_csioManagerTaskObjList[id]->exitThread();
 
-                //     if( !IsValidStreamWindow(id))
-                //     {
-                //         GST_DEBUG( "csioProjectClass: CSIO_EVENTS_JNI_STOP obj ID is invalid = %d",id);
-                //     }
-                //     //send tear down command only, this will keep object running in idle
-                //     else if(wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr)
-                //     {
-                //         csioEventQueueStruct EvntQ;
+                        //wait until thread exits
+                        GST_DEBUG("csioProjectClass: call WaitForThreadToExit[0x%x]\n",m_csioManagerTaskObjList[id]);
+                        m_csioManagerTaskObjList[id]->WaitForThreadToExit();
+                        GST_DEBUG("csioProjectClass: Wait is done\n");
 
-                //         memset(&EvntQ,0,sizeof(csioEventQueueStruct));
-                //         EvntQ.obj_id = id;
-                //         EvntQ.event_type = CSIO_TEARDOWN_TCP_CONN_EVENT;
-                //         wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr->sendEvent(&EvntQ);
+                        //delete the object, and set list to NULL
+                        delete m_csioManagerTaskObjList[id];
+                        m_csioManagerTaskObjList[id] = NULL;
 
-                //         //log stop time stamp
-                //         if(csioProjectTimeArray)
-                //             csioProjectTimeArray->recordEventTimeStamp(CSIO_PROJ_TIMESTAMP_STOP);
-                //     }//else
-
-                //     GST_DEBUG( "csioProjectClass: processing CSIO_EVENTS_JNI_STOP[%d].\n",id);
-                //     break;
-                // }
+                        GST_DEBUG("csioProjectClass: Wait is done\n");
+                    }
+                    else
+                    {
+                        GST_DEBUG("csioProjectClass: gstmanager NOT exist[0x%x], id[%d].\n",id);
+                    }
                 
+                    break;
+                }
                 default:
                 {
                     GST_DEBUG( "csioProjectClass: unknown type[%d].\n",evntQPtr->event_type);

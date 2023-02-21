@@ -6,11 +6,11 @@
 
 #define MAX_PROJCT_OBJ          1
 
-#define MAX_STREAM_OUT 1
+#define MAX_STREAM 10
 
-#define IsValidStreamOut(a)  ( (a >= 0) && (a < MAX_STREAM_OUT) )
+#define IsValidStream(a)  ( (a >= 0) && (a < MAX_STREAM) )
 
-//Note: make sure to match with wfd_proj_timestamp_names[]
+//Note: make sure to match with csio_proj_timestamp_names[]
 enum
 {
     CSIO_PROJ_TIMESTAMP_INIT = 0,
@@ -27,6 +27,22 @@ enum
 
     CSIO_PROJ_TIMER_MAX
 };
+
+typedef enum _eCsioProjEvents
+{
+//events come from CSIO to the project
+    CSIOPROJ_EVENTS_CSIO_CONFIG = 100,
+
+    CSIOPROJ_EVENT_CSIO_START_SERV,
+	CSIOPROJ_EVENT_CSIO_STOP_SERV,
+
+	CSIOPROJ_EVENT_CSIO_START_CLIENT,
+	CSIOPROJ_EVENT_CSIO_STOP_CLIENT,
+
+	CSIOPROJ_EVENT_CSIO_RESTART_CLIENT,
+
+	CSIOPROJ_EVENTS_MAX
+}eCsioProjEvents;
 
 #define CSIO_PROJ_EVNT_POLL_SLEEP_MS   1000   //1000ms
 
@@ -64,6 +80,9 @@ private:
 
     csioEventQueueListBase* m_projEventQList;
 };
+
+extern void csioProjStartServer(int streamID);
+extern void csioProjStopServer(int streamID);
 
 #endif
 

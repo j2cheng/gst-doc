@@ -8,12 +8,12 @@ class csioProjectClass;
 // class CCresRTSPServer;
 // class CCresRTSPClient;
 
+//Note: make sure to match with gst_manager_timestamp_names[]
 enum
 {
     CSIO_MANAGER_TIMESTAMP_INIT = 0,
     CSIO_MANAGER_TIMESTAMP_START,
     CSIO_MANAGER_TIMESTAMP_STOP,
-    CSIO_MANAGER_TIMESTAMP_REQ_IDR,
 
     CSIO_MANAGER_TIMESTAMP_MAX
 };
