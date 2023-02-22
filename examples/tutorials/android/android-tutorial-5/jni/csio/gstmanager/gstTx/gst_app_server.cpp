@@ -69,8 +69,8 @@ static bool gst_rtsp_server_get_pipeline(char * pDest, int destSize)
 void GstAppServer::media_configure_cb(GstRTSPMediaFactory * factory, GstRTSPMedia * media,
         gpointer user_data)
 {
-    GST_DEBUG("CresRTSP_gstappserver: set media reusable to true media");
-    gst_rtsp_media_set_reusable(NULL, true);
+    GST_DEBUG("media_configure_cb: set media reusable to true media");
+    gst_rtsp_media_set_reusable(media, true);
 
     //get media unprepared signal, only for debugging
     //g_signal_connect (media, "unprepared", (GCallback)GstAppServer::media_unprepared, NULL);
@@ -79,20 +79,20 @@ void GstAppServer::media_configure_cb(GstRTSPMediaFactory * factory, GstRTSPMedi
 GstRTSPFilterResult GstAppServer::filter_cb(GstRTSPStream *stream,
         GstRTSPStreamTransport *trans, gpointer user_data)
 {
-    GST_DEBUG("CresRTSP_gstappserver: filter_cb on stream[0x%x]",stream);
+    GST_DEBUG("filter_cb: filter_cb on stream[0x%x]",stream);
     return GST_RTSP_FILTER_REMOVE;
 }
 
 void GstAppServer::client_connected_new_client_cb (GstRTSPServer * server,
     GstRTSPClient * client, gpointer user_data)
 {
-    GST_DEBUG("CresRTSP_gstappserver: new_client -[0x%x]\n",client);
+    GST_DEBUG("client_connected_new_client_cb: new_client -[0x%x]\n",client);
     // g_signal_connect (client, "setup-request", (GCallback)GstAppServer::setup_request_from_client, NULL);
     // g_signal_connect (client, "play-request", (GCallback)GstAppServer::play_request_from_client, NULL);
     // g_signal_connect (client, "closed", (GCallback)GstAppServer::closed_from_client, NULL);
 
     GstAppServer::m_client_count++;
-    GST_DEBUG("GstAppServer::client_connected_new_client_cb: m_client_count -[%d]\n",GstAppServer::m_client_count);
+    GST_DEBUG("client_connected_new_client_cb: m_client_count -[%d]\n",GstAppServer::m_client_count);
 }
 
 // void GstAppServer::setup_request_from_client (GstRTSPClient * client,
@@ -163,7 +163,7 @@ void GstAppServer::client_connected_new_client_cb (GstRTSPServer * server,
 void GstAppServer::media_unprepared (GstRTSPMedia * media, gpointer user_data)
 {
     GstAppServer::m_media_status = 0;
-    GST_DEBUG("CresRTSP_gstappserver: media_unprepared-[0x%x]\n",media);
+    GST_DEBUG("media_unprepared-[0x%x]\n",media);
 
     return;
 }
@@ -174,7 +174,7 @@ m_parent(NULL),m_loop(NULL),m_factory(NULL),m_pMedia(NULL)
     mLock            = new Mutex();
 
     if(!mLock)
-        GST_DEBUG("CresRTSP_gstappserver: CCresRTSPServer malloc failed:[0x%x]\n",\
+        GST_DEBUG("GstAppServer: CCresRTSPServer malloc failed:[0x%x]\n",\
                  mLock);
 
     memset(m_rtsp_port,0,sizeof(m_rtsp_port));
@@ -192,16 +192,16 @@ GstAppServer::~GstAppServer()
         mLock = NULL;
     }
 
-    GST_DEBUG("CresRTSP_gstappserver: ~GstAppServer()\n");
+    GST_DEBUG("gstappserver: ~GstAppServer()\n");
 }
 void GstAppServer::DumpClassPara(int level)
 {
-    GST_DEBUG("-----CresRTSP_gstappserver: ThredId 0x%x\n", (unsigned long int)getThredId());
+    GST_DEBUG("gstappserver: ThredId 0x%x\n", (unsigned long int)getThredId());
     // GST_DEBUG("-----CresRTSP_gstappserver: m_debugLevel %d\n", m_debugLevel);
 
-    GST_DEBUG("-----CresRTSP_gstappserver: m_parent 0x%x\n", m_parent);
+    GST_DEBUG("gstappserver: m_parent 0x%x\n", m_parent);
 
-    GST_DEBUG("-----CresRTSP_gstappserver: m_rtsp_port %s\n", m_rtsp_port);
+    GST_DEBUG("gstappserver: m_rtsp_port %s\n", m_rtsp_port);
 }
 void GstAppServer::setDebugLevel(int level)
 {
@@ -211,7 +211,7 @@ void GstAppServer::setDebugLevel(int level)
 //overloaded from base
 void GstAppServer::exitThread()
 {
-    GST_DEBUG("CresRTSP_gstappserver: try to quit g_main_loop[0x%x]\n",m_loop);
+    GST_DEBUG("exitThread: try to quit g_main_loop[0x%x]\n",m_loop);
 
     m_forceThreadExit = 1;
 
@@ -223,11 +223,11 @@ void GstAppServer::exitThread()
         //    gst_rtsp_media_factory_set_eos_shutdown (m_factory, TRUE);
 
         g_main_loop_quit(m_loop);
-        GST_DEBUG("CresRTSP_gstappserver: g_main_loop_quit returned\n");
+        GST_DEBUG("exitThread: g_main_loop_quit returned\n");
     }
     else
     {
-        GST_DEBUG("CresRTSP_gstappserver: g_main_loop is not running\n");
+        GST_DEBUG("exitThread: g_main_loop is not running\n");
     }
 
     unlock_gst_app();
@@ -288,7 +288,7 @@ void* GstAppServer::ThreadEntry()
     mounts = gst_rtsp_server_get_mount_points (server);
     if(!mounts)
     {
-        GST_DEBUG("CresRTSP_gstappserver: Failed to create server mounts\n");
+        GST_DEBUG("gstappserver: Failed to create server mounts\n");
         unlock_gst_app();
         goto exitThread;
     }
@@ -296,17 +296,26 @@ void* GstAppServer::ThreadEntry()
     m_factory = gst_rtsp_media_factory_new ();
     if(!m_factory)
     {
-        GST_DEBUG("CresRTSP_gstappserver: Failed to create factory\n");
+        GST_DEBUG("gstappserver: Failed to create factory\n");
         unlock_gst_app();
         goto exitThread;
     }
-    gst_rtsp_media_factory_set_launch (m_factory, "( "
-        "videotestsrc ! video/x-raw,width=352,height=288,framerate=15/1 ! "
-        "x264enc ! rtph264pay name=pay0 pt=96 "
-        "audiotestsrc ! audio/x-raw,rate=8000 ! "
-        "alawenc ! rtppcmapay name=pay1 pt=97 " ")");
+    // gst_rtsp_media_factory_set_launch (m_factory, "( "
+    //     "videotestsrc ! video/x-raw,width=352,height=288,framerate=15/1 ! "
+    //     "x264enc ! rtph264pay name=pay0 pt=96 "
+    //     "audiotestsrc ! audio/x-raw,rate=8000 ! "
+    //     "alawenc ! rtppcmapay name=pay1 pt=97 " ")");
+    
+    // gst_rtsp_media_factory_set_launch (m_factory, 
+    //     "( "
+    //     "videotestsrc ! x264enc ! rtph264pay name=pay0 pt=96 "
+    //     ")"   );
 
-    //gst_rtsp_media_factory_set_shared (m_factory, TRUE);
+    gst_rtsp_media_factory_set_launch (m_factory, "( "        
+        "audiotestsrc ! audio/x-raw,rate=8000 ! "
+        "alawenc ! rtppcmapay name=pay0 pt=97 " ")");
+
+    gst_rtsp_media_factory_set_shared (m_factory, TRUE);
     //gst_rtsp_media_factory_set_latency (m_factory, 10);
 
     //if(gst_rtsp_server_get_pipeline(pipeline, sizeof(pipeline)) == false)
@@ -321,21 +330,21 @@ void* GstAppServer::ThreadEntry()
        * the media and a new pipeline with our appsrc is created */
     g_signal_connect (m_factory, "media-configure", (GCallback) media_configure_cb,this);
 
-    //g_signal_connect (server, "client-connected",
-    //        G_CALLBACK (client_connected_new_client_cb), NULL);
+    g_signal_connect (server, "client-connected",
+                      G_CALLBACK (client_connected_new_client_cb), NULL);
 
-    gst_rtsp_mount_points_add_factory (mounts, "/live.sdp", m_factory);
+    gst_rtsp_mount_points_add_factory (mounts, "/test", m_factory);
     g_object_unref (mounts);
 
 //correct way to create source and attatch to mainloop
     server_source = gst_rtsp_server_create_source(server,NULL,&err);
     if(server_source)
     {
-        GST_DEBUG("CresRTSP_gstappserver: create_source , server_source [0x%x]\n", server_source);
+        GST_DEBUG("gstappserver: create_source , server_source [0x%x]\n", server_source);
     }
     else
     {
-        GST_DEBUG("CresRTSP_gstappserver: Failed to create_source(err:0x%x)\n",err);
+        GST_DEBUG("gstappserver: Failed to create_source(err:0x%x)\n",err);
         if(err)
         {
             g_error_free (err);
@@ -349,17 +358,17 @@ void* GstAppServer::ThreadEntry()
 
     if(server_id)
     {
-        GST_DEBUG("CresRTSP_gstappserver: Attached server to maincontext, server_id %u\n", server_id);
+        GST_DEBUG("gstappserver: Attached server to maincontext, server_id %u\n", server_id);
     }
     else
     {
-        GST_DEBUG("CresRTSP_gstappserver: Failed to attach server\n");
+        GST_DEBUG("gstappserver: Failed to attach server\n");
         unlock_gst_app();
         goto exitThread;
     }
 
-    GST_DEBUG("CresRTSP_gstappserver: call g_main_loop_run,stream at rtsp://localhost:%s/live.sdp, m_forceThreadExit[%d]\n",
-            m_rtsp_port,m_forceThreadExit);
+    GST_DEBUG("gstappserver: call g_main_loop_run,stream at rtsp://localhost:8554/test, m_forceThreadExit[%d]\n",
+             m_forceThreadExit);
 
     unlock_gst_app();
 
@@ -370,7 +379,7 @@ void* GstAppServer::ThreadEntry()
     else
     {
         g_main_loop_run (m_loop);
-        GST_DEBUG("CresRTSP_gstappserver: g_main_loop_run returned\n");
+        GST_DEBUG("gstappserver: g_main_loop_run returned\n");
     }
 
 exitThread:
@@ -431,7 +440,7 @@ exitThread:
         /*You must use g_source_destroy() for sources added to a non-default main context.*/
         g_source_destroy (server_source);
         g_source_unref(server_source);
-        GST_DEBUG("CresRTSP_gstappserver: g_source_destroy server_source[0x%x]\n",server_source);
+        GST_DEBUG("gstappserver: g_source_destroy server_source[0x%x]\n",server_source);
     }
 
     /*Make sure you send a EOS first (if you have a queue in a pipeline have
@@ -461,7 +470,7 @@ unref the factory object and lastly unref the server object. */
         context = NULL;
     }
 
-    GST_DEBUG("CresRTSP_gstappserver: rtsp_server ended------\n");
+    GST_DEBUG("gstappserver: rtsp_server ended------\n");
 
     //thread exit here
     m_ThreadIsRunning = 0;

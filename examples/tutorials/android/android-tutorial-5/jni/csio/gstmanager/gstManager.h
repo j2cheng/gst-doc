@@ -70,7 +70,7 @@ public:
 private:
 
     Mutex* mLock;
-    GstAppServer* m_app_servs;
+    GstAppServer* m_app_serv;
     // CCresRTSPServer* m_RTSPServClass;
     // CCresRTSPClient* m_RTSPClientClass;
     // void fixOverflow();

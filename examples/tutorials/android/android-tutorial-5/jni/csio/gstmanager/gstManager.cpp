@@ -27,7 +27,8 @@ int gstManager_init()
 /***************************** CresRTSP manager class **************************************/
 gstManager::gstManager(int iId):
 m_parent(NULL),
-m_gstStreamId(iId)
+m_gstStreamId(iId),
+m_app_serv(NULL)
 {
     mLock        = new Mutex();
 
@@ -94,11 +95,11 @@ gstManager::~gstManager()
         mLock = NULL;
     }
    
-    // if(m_RTSPServClass)
-    // {
-    //     delete m_RTSPServClass;
-    //     m_RTSPServClass = NULL;
-    // }
+    if(m_app_serv)
+    {
+        delete m_app_serv;
+        m_app_serv = NULL;
+    }
 
     // if(m_RTSPClientClass)
     // {
@@ -220,6 +221,14 @@ void* gstManager::ThreadEntry()
         return NULL;
     }
 
+    //create m_app_serv only for testing
+    {
+        m_app_serv = new GstAppServer();
+        char name[100];
+        // sprintf(name, "RTSP_SERVER%d", m_CresRTSPManagerId);
+        m_app_serv->CreateNewThread("appserv0",NULL);
+    }   
+
     for(;;)
     {
         m_threadObjLoopCnt++;
@@ -249,7 +258,26 @@ void* gstManager::ThreadEntry()
 
         if(m_forceThreadExit)
         {
-            //TODO: exit all child thread and wait here
+            //exit all child thread and wait here
+            if(m_app_serv)
+            {
+                //tell thread to exit
+                m_app_serv->exitThread();
+
+                //wait until thread exits
+                GST_DEBUG("gstManager: call WaitForThreadToExit[0x%x]\n",m_app_serv);
+                m_app_serv->WaitForThreadToExit();
+                GST_DEBUG("gstManager: Wait is done\n");
+
+                //delete the object
+                delete m_app_serv;
+                m_app_serv = NULL;
+            }
+            else
+            {
+
+            }
+
             break;
         }
     }
