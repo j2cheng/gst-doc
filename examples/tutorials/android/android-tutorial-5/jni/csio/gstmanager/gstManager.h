@@ -3,6 +3,7 @@
 
 #include "../csio.h"
 #include "../csioCommBase.h"
+#include "gstTx/gst_app_server.h"
 
 class csioProjectClass;
 // class CCresRTSPServer;
@@ -25,6 +26,7 @@ enum
     CSIO_MANAGER_TIMER_MAX
 };
 
+class GstAppServer;
 class gstManager : public csioThreadBaseClass
 {
 public:
@@ -68,7 +70,7 @@ public:
 private:
 
     Mutex* mLock;
-
+    GstAppServer* m_app_servs;
     // CCresRTSPServer* m_RTSPServClass;
     // CCresRTSPClient* m_RTSPClientClass;
     // void fixOverflow();

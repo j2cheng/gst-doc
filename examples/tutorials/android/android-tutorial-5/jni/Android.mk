@@ -7,7 +7,8 @@ LOCAL_SRC_FILES := tutorial-5.c dummy.cpp
 LOCAL_SRC_FILES += csio/csio.cpp \
                    csio/csioCommBase.cpp \
                    csio/gst_element_print_properties.cpp \
-                   csio/gstmanager/gstManager.cpp
+                   csio/gstmanager/gstManager.cpp \
+                   csio/gstmanager/gstTx/gst_app_server.cpp
 
 LOCAL_SHARED_LIBRARIES := gstreamer_android
 LOCAL_LDLIBS := -llog -landroid
@@ -35,5 +36,5 @@ GSTREAMER_NDK_BUILD_PATH  := $(GSTREAMER_ROOT)/share/gst-android/ndk-build/
 include $(GSTREAMER_NDK_BUILD_PATH)/plugins.mk
 GSTREAMER_PLUGINS         := $(GSTREAMER_PLUGINS_CORE) $(GSTREAMER_PLUGINS_PLAYBACK) $(GSTREAMER_PLUGINS_CODECS) $(GSTREAMER_PLUGINS_NET) $(GSTREAMER_PLUGINS_SYS)
 G_IO_MODULES              := openssl
-GSTREAMER_EXTRA_DEPS      := gstreamer-video-1.0
+GSTREAMER_EXTRA_DEPS      := gstreamer-video-1.0 gstreamer-rtsp-server-1.0
 include $(GSTREAMER_NDK_BUILD_PATH)/gstreamer-1.0.mk

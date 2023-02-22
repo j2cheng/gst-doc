@@ -21,6 +21,7 @@ int gstManager_init()
                              "Android csio");
     gst_debug_set_threshold_for_name (GST_CAT_GSTMANAGER, GST_LEVEL_DEBUG);
 
+    gst_server_init();
     return 0;
 }
 /***************************** CresRTSP manager class **************************************/
@@ -39,7 +40,7 @@ m_gstStreamId(iId)
     if(m_ManagerTimeArray)
         m_ManagerTimeArray->recordEventTimeStamp(CSIO_MANAGER_TIMESTAMP_INIT);
 
-    
+    gst_debug_set_threshold_for_name (GST_CAT_GSTMANAGER, GST_LEVEL_DEBUG);
     GST_DEBUG( "gstManager: set GST_CAT_GSTMANAGER.\n");
 }
 
@@ -226,7 +227,7 @@ void* gstManager::ThreadEntry()
         wtRtn  = m_ManagerEventQList->waitMsgQueueSignal(CSIO_PROJ_EVNT_POLL_SLEEP_MS);
 
         GST_DEBUG( "gstManager: waitMsgQueueSignal return:%d, m_threadObjLoopCnt[%d]",wtRtn,m_threadObjLoopCnt);
-        
+
         evntQPtr = NULL;
 
         if(m_ManagerEventQList->GetFromQueueList(&evntQPtr) && evntQPtr)

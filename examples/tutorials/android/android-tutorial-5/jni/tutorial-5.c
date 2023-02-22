@@ -627,10 +627,10 @@ gboolean csio_GstMsgHandler(GstBus *bus, GstMessage *msg, void *arg)
       if( debug_info )
       {
         GST_DEBUG("%s: debug_info: %s", __FUNCTION__, debug_info);
-               
+
         g_free( debug_info );
       }
-      
+
       g_clear_error( &err );
       break;
     }
@@ -944,7 +944,7 @@ app_function (void *userdata)
 //  GST_DEBUG ("app_function m_bus_id: %d", m_bus_id);
 
 
-    gst_object_unref (bus);
+  gst_object_unref (bus);
 
   /* Register a function that GLib will call 4 times per second */
   timeout_source = g_timeout_source_new (250);

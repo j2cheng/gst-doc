@@ -443,7 +443,7 @@ void* csioProjectClass::ThreadEntry()
 
                     //check configuration
                     // if(m_ConfigTable[id].CresRTSPStreamID == -1)
-                //                 {
+                    // {
                     //     STRLOG(LOGLEV_ERROR,LOGCAT_GSRTSPDEFAULT, "CresRTSP_project ERROR: need configuration first\n");
                     //     break;
                     // }
@@ -509,7 +509,7 @@ void* csioProjectClass::ThreadEntry()
                     {
                         GST_DEBUG("csioProjectClass: gstmanager NOT exist[0x%x], id[%d].\n",id);
                     }
-                
+
                     break;
                 }
                 default:

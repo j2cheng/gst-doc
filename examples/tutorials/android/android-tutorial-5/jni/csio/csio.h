@@ -4,7 +4,7 @@
 #ifndef ANDROID_CSIO_H
 #define ANDROID_CSIO_H
 
-#define MAX_PROJCT_OBJ          1
+#define MAX_PROJCT_OBJ 1
 
 #define MAX_STREAM 10
 
