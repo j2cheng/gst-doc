@@ -571,7 +571,7 @@ gboolean csio_GstMsgHandler(GstBus *bus, GstMessage *msg, void *arg)
         GST_DEBUG ("calling overlay_set_window");
         gst_video_overlay_set_window_handle (GST_VIDEO_OVERLAY(data->video_sink), (guintptr)data->native_window);
 #endif
-        GST_DEBUG ("video_overlay_set_window to video sink: 0x%x",data->video_sink);
+        GST_DEBUG ("video_overlay_set_window to video sink: %p, window: %p",data->video_sink,(guintptr)data->native_window);
       }
       else
       {
@@ -999,6 +999,16 @@ app_function (void *userdata)
   data->pipeline = gst_parse_launch ("rtspsrc location=rtsp://170.93.143.139/rtplive/e40037d1c47601b8004606363d235daa latency=45 !"
                                      " rtph264depay ! decodebin ! videoconvert ! glimagesink", &error);
 
+  //data->pipeline = gst_parse_launch ("audiotestsrc ! audioconvert ! audioresample ! autoaudiosink ", &error); ends up with fakesink
+  // data->pipeline = gst_parse_launch ("audiotestsrc ! audioconvert ! audioresample ! openslessink ", &error); //not working
+  // data->pipeline = gst_parse_launch ("rtspsrc location=rtsp://10.116.165.119:8554/test latency=45 !"
+  //                                    " rtph264depay ! decodebin ! videoconvert ! glimagesink", &error);
+
+
+  // data->pipeline = gst_parse_launch ("playbin uri=rtsp://10.116.165.119:8554/test", &error);
+
+//  data->pipeline = gst_parse_launch ("audiotestsrc ! audioconvert ! audioresample ! audio/x-raw, rate=48000 ! openslessink ", &error);
+
   if (error) {
     gchar *message =
         g_strdup_printf ("Unable to build pipeline: %s", error->message);
@@ -1077,6 +1087,8 @@ gst_native_init (JNIEnv * env, jobject thiz)
   gst_debug_set_threshold_for_name ("amcvideodec", GST_LEVEL_WARNING);//Crestron change
 
   pthread_create (&gst_app_thread, NULL, &app_function, data);
+
+  csio_init();
 }
 
 /* Quit the main loop, remove the native thread and free resources */
@@ -1289,13 +1301,19 @@ JNI_OnLoad (JavaVM * vm, void *reserved)
 
   __android_log_print (ANDROID_LOG_ERROR, "GStreamer",
                        "JNI_OnLoad in tutorial-5.c[%s]",getenv("GST_DEBUG"));
-  csio_init();
+  // csio_init();
 
   //Crestron change starts
-  //setenv("GST_DEBUG","*:5",1);
+  setenv("GST_DEBUG","*:3",1);
+
+  //Note: do not use GST_DEBUG here.
+  //      use GST_DEBUG_CATEGORY_INIT in gst_native_init()
+  //      to set each category level by gst_debug_set_threshold_for_name().
   //setenv("GST_DEBUG","rtpjitterbuffer:5",1);
   //setenv("GST_DEBUG","amc:5",1);
-  setenv("GST_DEBUG","GST_ELEMENT_FACTORY:5",1);
+  //setenv("GST_DEBUG","GST_ELEMENT_FACTORY:5",1);
+
+
   //setenv("GST_AMC_IGNORE_UNKNOWN_COLOR_FORMATS", "yes", 1);
   /**
    * did not work,we are not using gst-launch-1.0 here.

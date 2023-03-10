@@ -300,16 +300,16 @@ void* GstAppServer::ThreadEntry()
         unlock_gst_app();
         goto exitThread;
     }
-     gst_rtsp_media_factory_set_launch (m_factory, "( "
-         "videotestsrc ! video/x-raw,width=352,height=288,framerate=15/1 ! "
-         "x264enc ! rtph264pay name=pay0 pt=96 "
-         "audiotestsrc ! audio/x-raw,rate=8000 ! "
-         "alawenc ! rtppcmapay name=pay1 pt=97 " ")");
+    //  gst_rtsp_media_factory_set_launch (m_factory, "( "
+    //      "videotestsrc ! video/x-raw,width=352,height=288,framerate=15/1 ! "
+    //      "x264enc ! rtph264pay name=pay0 pt=96 "
+    //      "audiotestsrc ! audio/x-raw,rate=8000 ! "
+    //      "alawenc ! rtppcmapay name=pay1 pt=97 " ")");
     
-    // gst_rtsp_media_factory_set_launch (m_factory, 
-    //     "( "
-    //     "videotestsrc ! x264enc ! rtph264pay name=pay0 pt=96 "
-    //     ")"   );
+    gst_rtsp_media_factory_set_launch (m_factory, 
+        "( "
+        "videotestsrc ! x264enc ! rtph264pay name=pay0 pt=96 "
+        ")"   );
 
 //    gst_rtsp_media_factory_set_launch (m_factory, "( "
 //        "audiotestsrc ! audio/x-raw,rate=8000 ! "
