@@ -8,7 +8,15 @@ LOCAL_SRC_FILES += csio/csio.cpp \
                    csio/csioCommBase.cpp \
                    csio/gst_element_print_properties.cpp \
                    csio/gstmanager/gstManager.cpp \
-                   csio/gstmanager/gstTx/gst_app_server.cpp
+                   csio/gstmanager/gstTx/gst_app_server.cpp \
+                   csio/armhdcp/Hdcp_Module.cpp
+
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/core/inc \
+                    /home/builduser/gst-docs/AOSP/core/libutils/include \
+                    /home/builduser/gst-docs/AOSP/core/libcutils/include \
+                    /home/builduser/gst-docs/AOSP/core/libsystem/include \
+                    /home/builduser/gst-docs/AOSP/native/libs/nativewindow/include \
+                    /home/builduser/gst-docs/AOSP/native/libs/nativebase/include
 
 LOCAL_SHARED_LIBRARIES := gstreamer_android
 LOCAL_LDLIBS := -llog -landroid
@@ -44,3 +52,13 @@ GSTREAMER_PLUGINS         := $(GSTREAMER_PLUGINS_CORE) \
 G_IO_MODULES              := openssl
 GSTREAMER_EXTRA_DEPS      := gstreamer-video-1.0 gstreamer-rtsp-server-1.0
 include $(GSTREAMER_NDK_BUILD_PATH)/gstreamer-1.0.mk
+
+
+######try to include libDxHdcp.so#######################################################################################################################
+# include $(CLEAR_VARS)
+# LOCAL_MODULE := include libDxHdcp.so
+# LOCAL_MODULE_CLASS := SHARED_LIBRARIES
+# LOCAL_MODULE_TAGS := eng
+# LOCAL_SRC_FILES := $(LOCAL_PATH)/core/64bit-debug/libDxHdcp.so
+# include $(BUILD_PREBUILT)
+######end of include libDxHdcp.so##################################################################################################
